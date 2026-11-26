@@ -736,15 +736,31 @@
     mascot.addEventListener('click', () => { mascot.classList.remove('is-waving'); clearTimeout(waveT); });
   }
 
-  /* office map: Google Maps loads only when the visitor asks (it sends their IP to Google and sets Google cookies) */
-  $$('[data-map-load]').forEach((b) => b.addEventListener('click', () => {
-    const box = b.closest('[data-map-src]');
+  /* office map: a saved screenshot until the visitor taps it. The tap is their consent: the live Google map loads
+     (Google then gets their IP and may set cookies) and the choice is remembered until they turn it off below the map. */
+  const MAPS = 'cw-maps';
+  const mapsOk = () => { try { return localStorage.getItem(MAPS) === '1'; } catch { return false; } };
+  const liveMap = (box, focus) => {
     const f = document.createElement('iframe');
     f.title = box.dataset.mapTitle;
     f.src = box.dataset.mapSrc;
+    f.loading = 'lazy';
     f.referrerPolicy = 'no-referrer-when-downgrade';
     f.allowFullscreen = true;
     box.replaceChildren(f);
-    f.focus();
-  }));
+    const note = box.parentElement.querySelector('[data-map-note]');
+    if (note) {
+      note.textContent = 'Google Maps is on for this site, so Google receives your IP address. ';
+      const off = document.createElement('button');
+      off.type = 'button'; off.textContent = 'Turn it off';
+      off.addEventListener('click', () => { try { localStorage.setItem(MAPS, '0'); } catch { /* ignore */ } location.reload(); });
+      note.append(off);
+    }
+    if (focus) f.focus();
+  };
+  $$('[data-map-src]').forEach((box) => {
+    if (mapsOk()) { liveMap(box, false); return; }
+    const btn = box.querySelector('[data-map-load]');
+    if (btn) btn.addEventListener('click', () => { try { localStorage.setItem(MAPS, '1'); } catch { /* private mode: loads this time only */ } liveMap(box, true); });
+  });
 })();

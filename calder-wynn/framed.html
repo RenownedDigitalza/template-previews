@@ -221,12 +221,16 @@
       </div>
     </div>
     <div class="visit__map" data-map-src="https://www.google.com/maps?q=Constantia%2C%20Cape%20Town&amp;z=14&amp;output=embed" data-map-title="Map showing the Calder &amp; Wynn office, Orchard Street, Constantia, Cape Town">
-      <div class="visit__ask">
-        <span class="visit__pin" aria-hidden="true"><svg class="" aria-hidden="true"><use href="#pin"/></svg></span>
-        <p>The map comes from Google Maps, which sets Google cookies once it loads.</p>
-        <button type="button" class="btn btn--dark" data-map-load>Show the map</button>
-      </div>
+      <button type="button" class="visit__preview" data-map-load aria-label="Show the live Google map of our office">
+        <picture>
+          <source media="(max-width: 639px)" srcset="media/map-phone.webp" width="880" height="880">
+          <source media="(max-width: 1023px)" srcset="media/map-mid.webp" width="1520" height="760">
+          <img src="media/map-wide.webp" width="2600" height="1040" alt="Google map of Constantia, Cape Town, where the Calder &amp; Wynn office is" loading="lazy" decoding="async">
+        </picture>
+        <span class="visit__hint"><svg class="" aria-hidden="true"><use href="#pin"/></svg> Tap to explore the map</span>
+      </button>
     </div>
+    <p class="visit__note" data-map-note>Tapping the map loads Google Maps, which receives your IP address and may set cookies.</p>
   </div>
 </section>
 
