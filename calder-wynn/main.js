@@ -231,50 +231,61 @@
     im.loading = 'eager';
     return im.decode ? im.decode().catch(() => {}) : Promise.resolve();
   };
-  // a horizontal swipe on the slideshow; vertical scrolling is left to the page, and buttons and links inside keep working
+  // swiping a slideshow. Touch uses touch events (the most dependable on phones); a mouse can drag too.
+  // Only sideways moves count: up-and-down still scrolls the page, and buttons and links inside keep working.
   const swipe = (el, prev, next) => {
     let x0 = null, y0 = 0, moved = false;
-    el.addEventListener('pointerdown', (e) => {
-      if ((e.pointerType === 'mouse' && e.button !== 0) || e.target.closest('button, summary, details, .btn, .hero__cap, .hero__cut')) return;
-      x0 = e.clientX; y0 = e.clientY; moved = false;
-    });
-    el.addEventListener('pointermove', (e) => { if (x0 !== null && Math.abs(e.clientX - x0) > 8) moved = true; });
-    const end = (e) => {
+    const skip = (t) => t.closest('button, summary, details, .btn, .hero__cap, .hero__cut, .open');
+    const start = (x, y, t) => { if (skip(t)) { x0 = null; return; } x0 = x; y0 = y; moved = false; };
+    const move = (x) => { if (x0 !== null && Math.abs(x - x0) > 8) moved = true; };
+    const end = (x, y) => {
       if (x0 === null) return;
-      const dx = e.clientX - x0, dy = e.clientY - y0; x0 = null;
-      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.2) (dx < 0 ? next : prev)();
+      const dx = x - x0, dy = y - y0; x0 = null;
+      if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy)) (dx < 0 ? next : prev)();
     };
-    el.addEventListener('pointerup', end);
-    el.addEventListener('pointercancel', () => { x0 = null; });
+    el.addEventListener('touchstart', (e) => { if (e.touches.length === 1) start(e.touches[0].clientX, e.touches[0].clientY, e.target); else x0 = null; }, { passive: true });
+    el.addEventListener('touchmove', (e) => move(e.touches[0].clientX), { passive: true });
+    el.addEventListener('touchend', (e) => end(e.changedTouches[0].clientX, e.changedTouches[0].clientY), { passive: true });
+    el.addEventListener('touchcancel', () => { x0 = null; }, { passive: true });
+    el.addEventListener('pointerdown', (e) => { if (e.pointerType !== 'touch' && e.button === 0) start(e.clientX, e.clientY, e.target); });
+    el.addEventListener('pointermove', (e) => { if (e.pointerType !== 'touch') move(e.clientX); });
+    el.addEventListener('pointerup', (e) => { if (e.pointerType !== 'touch') end(e.clientX, e.clientY); });
     el.addEventListener('click', (e) => { if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; } }, true); // a swipe is not a tap
     el.addEventListener('dragstart', (e) => e.preventDefault()); // no ghost image when dragging with a mouse
   };
   const runShow = (box, imgs, dashes, cap) => {
-    let i = 0, on = true, busy = false;
+    const N = imgs.length, at = (n) => ((n % N) + N) % N;
+    let i = 0, goal = 0, on = true, busy = false, seq = 0;
     const mark = () => {
       dashes.forEach((dd, k) => { dd.classList.toggle('is-done', k < i); dd.classList.remove('is-on'); });
       if (dashes[i]) { void dashes[i].offsetWidth; dashes[i].classList.add('is-on'); }
       if (cap) { cap.textContent = imgs[i].dataset.cap; if (imgs[i].dataset.href) cap.href = imgs[i].dataset.href; }
     };
-    const show = (n) => {
-      if (busy) return; busy = true;
-      const next = (n + imgs.length) % imgs.length, cur = imgs[i], im = imgs[next];
+    const neighbours = () => { ready(imgs[at(i + 1)]); ready(imgs[at(i - 1)]); }; // both ways, so a swipe back never waits
+    // one cross-fade at a time; swipes made meanwhile are remembered (goal) rather than dropped
+    const step = () => {
+      if (busy || goal === i) return;
+      busy = true;
+      const next = goal, cur = imgs[i], im = imgs[next];
       ready(im).then(() => {
         imgs.forEach((x) => { if (x !== cur) x.classList.remove('is-prev'); });
         cur.classList.remove('is-on'); cur.classList.add('is-prev');
         im.classList.add('is-on');
         i = next; mark(); busy = false;
-        setTimeout(() => cur.classList.remove('is-prev'), 1400); // once the new photo fully covers it
-        ready(imgs[(i + 1) % imgs.length]); // get the one after ready in good time
+        const tok = ++seq;
+        setTimeout(() => { if (tok === seq) cur.classList.remove('is-prev'); }, 1400); // once the new photo fully covers it
+        neighbours();
+        step();
       });
     };
+    const show = (n) => { goal = at(n); step(); };
     mark();
     let timer = 0;
-    const loop = () => { clearTimeout(timer); if (!calm) timer = setTimeout(() => { if (on && !document.hidden) show(i + 1); loop(); }, EVERY); };
+    const loop = () => { clearTimeout(timer); if (!calm) timer = setTimeout(() => { if (on && !document.hidden) show(goal + 1); loop(); }, EVERY); };
     // swipe (or drag with a mouse) left or right to move by hand; the timer starts again from there
-    swipe(box, () => { show(i - 1); loop(); }, () => { show(i + 1); loop(); });
+    swipe(box, () => { show(goal - 1); loop(); }, () => { show(goal + 1); loop(); });
+    neighbours();
     if (calm) return;
-    ready(imgs[1 % imgs.length]);
     new IntersectionObserver(([e]) => { on = e.isIntersecting; box.classList.toggle('is-paused', !on); }).observe(box);
     loop();
   };
