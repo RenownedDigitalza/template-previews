@@ -130,25 +130,29 @@
     sizeNotch();
   }
 
-  /* ---------- listings: filter by area and price, sort by price ---------- */
+  /* ---------- listings: filter by area, beds and price, sort; the map pins follow the list ---------- */
   const filters = $('[data-filters]');
   if (filters) {
     const list = $('[data-list]');
     const cards = $$('[data-card]', list);
     const count = $('[data-count]');
     const empty = $('[data-empty]');
+    const pins = new Map($$('[data-pin]').map((p) => [p.dataset.pin, p]));
+    const sorts = { 'price-asc': (c) => +c.dataset.price, 'price-desc': (c) => -c.dataset.price, views: (c) => -c.dataset.views, sqm: (c) => -c.dataset.sqm };
     const apply = () => {
       const area = filters.area.value;
+      const beds = +filters.beds.value || 0;
       const [lo, hi] = (filters.price.value || '0-999999999').split('-').map(Number);
-      const dir = filters.sort.value === 'desc' ? -1 : 1;
-      cards.sort((a, b) => (a.dataset.price - b.dataset.price) * dir).forEach((c) => list.appendChild(c));
+      const key = sorts[filters.sort.value] || sorts['price-asc'];
+      cards.sort((a, b) => key(a) - key(b)).forEach((c) => list.appendChild(c));
       let shown = 0;
       cards.forEach((c) => {
         const p = +c.dataset.price;
-        const ok = (!area || c.dataset.area === area) && p >= lo && p < hi;
+        const ok = (!area || c.dataset.area === area) && +c.dataset.beds >= beds && p >= lo && p < hi;
         c.hidden = !ok; if (ok) shown++;
+        pins.get(c.dataset.id)?.classList.toggle('is-off', !ok);
       });
-      count.textContent = `${shown} ${shown === 1 ? 'house' : 'houses'}${area ? ` in ${area}` : ''}`;
+      count.textContent = `${shown} more ${shown === 1 ? 'home' : 'homes'}${area ? ` in ${area}` : ' on our books'}`;
       empty.hidden = shown > 0;
     };
     const q = new URLSearchParams(location.search);
@@ -156,6 +160,21 @@
     if (q.get('price')) filters.price.value = q.get('price');
     filters.addEventListener('change', apply);
     filters.addEventListener('reset', () => setTimeout(apply));
+    $('[data-clear]')?.addEventListener('click', () => filters.reset());
+    // hovering a row lights its pin, and the other way round
+    cards.forEach((c) => {
+      const p = pins.get(c.dataset.id);
+      if (!p) return;
+      const on = (v) => { c.classList.toggle('is-hot', v); p.classList.toggle('is-hot', v); };
+      [c, p].forEach((el) => { el.addEventListener('pointerenter', () => on(true)); el.addEventListener('pointerleave', () => on(false)); el.addEventListener('focus', () => on(true)); el.addEventListener('blur', () => on(false)); });
+    });
+    // tablets and phones: the map sits behind a Map button
+    const toggle = $('[data-map-toggle]');
+    toggle?.addEventListener('click', () => {
+      const open = toggle.getAttribute('aria-expanded') !== 'true';
+      toggle.setAttribute('aria-expanded', String(open));
+      $('[data-split]').classList.toggle('is-map', open);
+    });
     apply();
   }
 
