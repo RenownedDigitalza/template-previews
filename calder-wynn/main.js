@@ -203,7 +203,7 @@
     const prev = $('[data-ph-prev]', ph), next = $('[data-ph-next]', ph);
     const slides = [...track.children], n = slides.length;
     // photos 2+ load only when needed: the second once the card is near the screen (so a swipe never shows a gap), the rest on first touch
-    const fill = (k) => { const im = slides[k]?.querySelector('img[data-src]'); if (im) { im.srcset = im.dataset.srcset; im.src = im.dataset.src; im.removeAttribute('data-src'); } };
+    const fill = (k) => { const im = slides[k]?.querySelector('img[data-src]'); if (im) { if (im.dataset.srcset) im.srcset = im.dataset.srcset; im.src = im.dataset.src; im.removeAttribute('data-src'); } };
     const fillAll = () => slides.forEach((_, k) => fill(k));
     new IntersectionObserver((es, io) => { if (es[0].isIntersecting) { fill(1); io.disconnect(); } }, { rootMargin: '200px' }).observe(ph);
     ['pointerenter', 'touchstart', 'focusin'].forEach((ev) => ph.addEventListener(ev, fillAll, { once: true, passive: true }));
@@ -227,7 +227,7 @@
   // underneath), and every photo drifts slowly from the moment it appears until it has gone, so nothing ever jumps
   const EVERY = 3000;
   const ready = (im) => {
-    if (!im.getAttribute('src') && im.dataset.src) { im.srcset = im.dataset.srcset; im.src = im.dataset.src; }
+    if (!im.getAttribute('src') && im.dataset.src) { if (im.dataset.srcset) im.srcset = im.dataset.srcset; im.src = im.dataset.src; }
     im.loading = 'eager';
     return im.decode ? im.decode().catch(() => {}) : Promise.resolve();
   };
