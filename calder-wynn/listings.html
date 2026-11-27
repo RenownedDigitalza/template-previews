@@ -55,6 +55,7 @@
   <symbol id="bath" viewBox="0 0 20 20"><path d="M2.5 10h15v1.5a4.5 4.5 0 0 1-4.5 4.5H7a4.5 4.5 0 0 1-4.5-4.5zM5 10V5.2a1.7 1.7 0 0 1 3.3-.6M6 16l-1 1.6M14 16l1 1.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="size" viewBox="0 0 20 20"><path d="M3 3h14v14H3zM3 7h2.5M3 11h2.5M7 3v2.5M11 3v2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="car" viewBox="0 0 20 20"><path d="M3 14v-3l1.8-4.2A1.5 1.5 0 0 1 6.2 6h7.6a1.5 1.5 0 0 1 1.4.8L17 11v3zM3 14v2h2.5v-2M14.5 14v2H17v-2M6 11.2h.01M14 11.2h.01" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="filter" viewBox="0 0 20 20"><path d="M3 5.5h8.5M15.5 5.5H17M3 10h2M9 10h8M3 14.5h8.5M15.5 14.5H17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="13.5" cy="5.5" r="1.9" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="7" cy="10" r="1.9" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="13.5" cy="14.5" r="1.9" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
   <symbol id="heart" viewBox="0 0 24 24"><path d="M12 20.3s-7.4-4.5-9.2-9.1C1.6 8 3.7 4.6 7.1 4.6c2 0 3.6 1.1 4.9 2.8 1.3-1.7 2.9-2.8 4.9-2.8 3.4 0 5.5 3.4 4.3 6.6-1.8 4.6-9.2 9.1-9.2 9.1z" stroke-width="1.8" stroke-linejoin="round"/></symbol>
   <symbol id="chat" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4h0A1.5 1.5 0 0 1 4 14.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8.5 9.5h7M8.5 12.5h4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
 </svg>
@@ -137,9 +138,16 @@
         <label><input type="radio" name="area" value="Helderberg"><span>Helderberg</span></label>
       </fieldset>
       <div class="lx__selects">
-        <label class="lx__sel"><span class="sr-only">Bedrooms</span><select name="beds"><option value="0">Any beds</option><option value="2">2+ beds</option><option value="3">3+ beds</option><option value="4">4+ beds</option><option value="5">5+ beds</option></select></label>
-        <label class="lx__sel"><span class="sr-only">Price</span><select name="price"><option value="">Any price</option><option value="0-5000000">Up to R&nbsp;5m</option><option value="5000000-8000000">R&nbsp;5m – R&nbsp;8m</option><option value="8000000-12000000">R&nbsp;8m – R&nbsp;12m</option><option value="12000000-999999999">Over R&nbsp;12m</option></select></label>
-        <label class="lx__sel"><span class="sr-only">Sort by</span><select name="sort"><option value="views">Most viewed</option><option value="price-asc">Lowest price</option><option value="price-desc">Highest price</option><option value="sqm">Largest</option></select></label>
+        <div class="lx__filter">
+          <button class="lx__filterbtn" type="button" aria-expanded="false" aria-controls="lx-panel" data-filter-open><svg class="" aria-hidden="true"><use href="#filter"/></svg><span>Filters</span><b class="lx__badge" data-filter-count hidden></b></button>
+          <!-- grows out of the Filters button (main.js opens and closes it; the selects stay part of the form) -->
+          <div class="lx__panel" id="lx-panel" role="group" aria-label="Filters" data-filter-panel>
+            <div class="field"><label for="f-beds">Bedrooms</label><select id="f-beds" name="beds"><option value="0">Any beds</option><option value="2">2+ beds</option><option value="3">3+ beds</option><option value="4">4+ beds</option><option value="5">5+ beds</option></select></div>
+            <div class="field"><label for="f-price">Price</label><select id="f-price" name="price"><option value="">Any price</option><option value="0-5000000">Up to R&nbsp;5m</option><option value="5000000-8000000">R&nbsp;5m – R&nbsp;8m</option><option value="8000000-12000000">R&nbsp;8m – R&nbsp;12m</option><option value="12000000-999999999">Over R&nbsp;12m</option></select></div>
+            <div class="field"><label for="f-sort">Sort by</label><select id="f-sort" name="sort"><option value="views">Most viewed</option><option value="price-asc">Lowest price</option><option value="price-desc">Highest price</option><option value="sqm">Largest</option></select></div>
+            <div class="lx__panelfoot"><button class="linkish" type="button" data-filter-clear>Clear</button><button class="btn btn--dark" type="button" data-filter-done>Show <span data-filter-n>29</span> homes</button></div>
+          </div>
+        </div>
         <button class="lx__saved" type="button" data-saved-only aria-pressed="false"><svg class="" aria-hidden="true"><use href="#heart"/></svg><span>Saved</span> <b data-saved-count>0</b></button>
         <button class="lx__maptoggle" type="button" data-map-toggle aria-expanded="false" aria-controls="results-map"><svg class="" aria-hidden="true"><use href="#pin"/></svg><span>Map</span></button>
       </div>

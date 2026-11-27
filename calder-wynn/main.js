@@ -317,6 +317,10 @@
       count.textContent = mine ? `${n} saved ${n === 1 ? 'home' : 'homes'}`
         : `${shown} more ${shown === 1 ? 'home' : 'homes'}${area ? ` in ${area}` : ' on our books'}`;
       empty.hidden = mine ? n > 0 : shown > 0;
+      // the Filters button shows how many of its filters are on; the panel's button shows the result count
+      const on = (beds ? 1 : 0) + (filters.price.value ? 1 : 0);
+      const badge = $('[data-filter-count]'); if (badge) { badge.hidden = !on; badge.textContent = on; }
+      const done = $('[data-filter-done]'); if (done) done.textContent = n === 1 ? 'Show 1 home' : `Show ${n} homes`;
     };
     const q = new URLSearchParams(location.search);
     if (q.get('area')) filters.area.value = q.get('area');
@@ -344,6 +348,16 @@
       p.addEventListener('pointerenter', () => on(true)); p.addEventListener('pointerleave', () => on(false));
       p.addEventListener('focus', () => on(true)); p.addEventListener('blur', () => on(false));
     });
+    // the Filters panel: grows out of its button; closes on Done, Esc, or a tap outside
+    const fBtn = $('[data-filter-open]'), panel = $('[data-filter-panel]');
+    if (fBtn && panel) {
+      const setOpen = (v) => { panel.classList.toggle('is-open', v); fBtn.setAttribute('aria-expanded', String(v)); if (v) setTimeout(() => $('select', panel).focus({ preventScroll: true }), 60); };
+      fBtn.addEventListener('click', () => setOpen(!panel.classList.contains('is-open')));
+      $('[data-filter-done]', panel).addEventListener('click', () => { setOpen(false); fBtn.focus(); });
+      $('[data-filter-clear]', panel).addEventListener('click', () => { filters.beds.value = '0'; filters.price.value = ''; filters.sort.value = 'views'; filters.dispatchEvent(new Event('change')); });
+      document.addEventListener('click', (e) => { if (panel.classList.contains('is-open') && !e.target.closest('.lx__filter')) setOpen(false); });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && panel.classList.contains('is-open')) { setOpen(false); fBtn.focus(); } });
+    }
     // tablets and phones: the map sits behind a Map button
     const toggle = $('[data-map-toggle]');
     toggle?.addEventListener('click', () => {
