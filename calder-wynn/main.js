@@ -212,6 +212,12 @@
     const track = $('[data-ph-track]', ph), count = $('[data-ph-count]', ph);
     const prev = $('[data-ph-prev]', ph), next = $('[data-ph-next]', ph);
     const slides = [...track.children], n = slides.length;
+    // photos 2+ load only when needed: the second once the card is near the screen (so a swipe never shows a gap), the rest on first touch
+    const fill = (k) => { const im = slides[k]?.querySelector('img[data-src]'); if (im) { im.srcset = im.dataset.srcset; im.src = im.dataset.src; im.removeAttribute('data-src'); } };
+    const fillAll = () => slides.forEach((_, k) => fill(k));
+    new IntersectionObserver((es, io) => { if (es[0].isIntersecting) { fill(1); io.disconnect(); } }, { rootMargin: '200px' }).observe(ph);
+    ['pointerenter', 'touchstart', 'focusin'].forEach((ev) => ph.addEventListener(ev, fillAll, { once: true, passive: true }));
+    track.addEventListener('scroll', fillAll, { once: true, passive: true });
     const at = () => Math.round(track.scrollLeft / (track.clientWidth || 1));
     const update = () => {
       const k = Math.min(n - 1, Math.max(0, at()));
@@ -227,19 +233,38 @@
   });
 
   /* ---------- slideshows of the listings' exterior photos: the home page's listings band, and the hero once its film has ended ---------- */
+  // a seamless cross-fade: the next photo is decoded before it starts, fades in over the current one (which stays put
+  // underneath), and every photo drifts slowly from the moment it appears until it has gone, so nothing ever jumps
+  const EVERY = 3000;
+  const ready = (im) => {
+    if (!im.getAttribute('src') && im.dataset.src) { im.srcset = im.dataset.srcset; im.src = im.dataset.src; }
+    im.loading = 'eager';
+    return im.decode ? im.decode().catch(() => {}) : Promise.resolve();
+  };
   const runShow = (box, imgs, dashes, cap) => {
-    let i = 0, on = true;
-    const show = (n) => {
-      i = (n + imgs.length) % imgs.length;
-      imgs.forEach((im, k) => im.classList.toggle('is-on', k === i));
-      dashes.forEach((d, k) => { d.classList.toggle('is-done', k < i); d.classList.remove('is-on'); });
+    let i = 0, on = true, busy = false;
+    const mark = () => {
+      dashes.forEach((dd, k) => { dd.classList.toggle('is-done', k < i); dd.classList.remove('is-on'); });
       if (dashes[i]) { void dashes[i].offsetWidth; dashes[i].classList.add('is-on'); }
       if (cap) { cap.textContent = imgs[i].dataset.cap; if (imgs[i].dataset.href) cap.href = imgs[i].dataset.href; }
     };
-    show(0);
+    const show = (n) => {
+      if (busy) return; busy = true;
+      const next = (n + imgs.length) % imgs.length, cur = imgs[i], im = imgs[next];
+      ready(im).then(() => {
+        imgs.forEach((x) => { if (x !== cur) x.classList.remove('is-prev'); });
+        cur.classList.remove('is-on'); cur.classList.add('is-prev');
+        im.classList.add('is-on');
+        i = next; mark(); busy = false;
+        setTimeout(() => cur.classList.remove('is-prev'), 1400); // once the new photo fully covers it
+        ready(imgs[(i + 1) % imgs.length]); // get the one after ready in good time
+      });
+    };
+    mark();
     if (calm) return;
+    ready(imgs[1 % imgs.length]);
     new IntersectionObserver(([e]) => { on = e.isIntersecting; box.classList.toggle('is-paused', !on); }).observe(box);
-    setInterval(() => { if (on && !document.hidden) show(i + 1); }, 2500);
+    setInterval(() => { if (on && !document.hidden) show(i + 1); }, EVERY);
   };
   const band = $('[data-show]');
   if (band) runShow(band, $$('.show__img', band), $$('.show__bar i', band), $('[data-show-cap]', band));
@@ -250,9 +275,12 @@
     const begin = () => {
       if (begun) return; begun = true;
       const imgs = $$('.hero__slide', heroShow);
-      imgs.forEach((im) => { im.srcset = im.dataset.srcset; im.src = im.dataset.src; });
-      const go = () => { bar?.classList.add('is-on'); runShow($('.hero'), imgs, bar ? $$('i', bar) : [], $('[data-hero-cap]')); };
-      imgs[0].decode ? imgs[0].decode().then(go, go) : imgs[0].addEventListener('load', go, { once: true });
+      // only the first photo now; runShow readies each next one a slide ahead
+      ready(imgs[0]).then(() => {
+        imgs[0].classList.add('is-on');
+        bar?.classList.add('is-on');
+        runShow($('.hero'), imgs, bar ? $$('i', bar) : [], $('[data-hero-cap]'));
+      });
     };
     // first visit: wait for the film to end and the hero to settle; later visits: a moment on the still first
     if (document.documentElement.classList.contains('hero-film')) {
