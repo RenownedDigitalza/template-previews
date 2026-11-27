@@ -28,7 +28,14 @@
 
   /* the dock shows once the visitor has left the landing screen */
   let pastHero = !hero;
-  const setDock = () => dock && dock.classList.toggle('is-on', pastHero && !document.body.classList.contains('is-locked'));
+  // the floating bar slides away while a house page's own booking box (same buttons) is on screen
+  let bookBox = false;
+  const setDock = () => dock && dock.classList.toggle('is-on', pastHero && !bookBox && !document.body.classList.contains('is-locked'));
+  const agentBox = document.querySelector('.agent');
+  if (agentBox && dock) {
+    const checkBox = () => { const r = agentBox.getBoundingClientRect(); const v = r.bottom > 120 && r.top < window.innerHeight - 120; if (v !== bookBox) { bookBox = v; setDock(); } };
+    addEventListener('scroll', checkBox, { passive: true }); addEventListener('resize', checkBox); checkBox();
+  }
   const fabEl = document.querySelector('.wa-fab');
   if (hero) document.body.classList.add('has-hero');
   const setFab = () => fabEl && fabEl.classList.toggle('is-on', pastHero);
