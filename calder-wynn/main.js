@@ -129,28 +129,43 @@
 
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  /* ---------- saved homes: the heart needs an account, so the first tap opens the sign-up ----------
-     DEMO: the account and the saved list live in localStorage. For a real client, swap store.* for Supabase Auth + a table. */
-  const ACC = 'cw-account', SAVED = 'cw-saved';
+  /* ---------- the visitor's account: saved homes, viewings and recently viewed homes ----------
+     DEMO: everything lives in localStorage on this device. For a real client, swap store.* for Supabase Auth + tables. */
+  const ACC = 'cw-account', SAVED = 'cw-saved', SEEN = 'cw-seen';
   const store = {
     get: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
     set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode: this visit only */ } },
   };
+  const account = () => store.get(ACC, null);
   const saved = new Set(store.get(SAVED, []));
   const hearts = $$('[data-save]');
+  // a house page notes that it was opened: newest first, the last 12
+  const houseHere = $('[data-house]')?.dataset.house;
+  if (houseHere) store.set(SEEN, [{ id: houseHere, t: Date.now() }, ...store.get(SEEN, []).filter((s) => s.id !== houseHere)].slice(0, 12));
   const toast = (msg) => {
     let t = $('.toast');
     if (!t) { t = document.createElement('p'); t.className = 'toast'; t.setAttribute('role', 'status'); document.body.append(t); }
     t.textContent = msg; t.classList.add('is-on');
     clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('is-on'), 2600);
   };
+  // hearts show the saved homes only while someone is signed in
   const paintHearts = () => {
+    const signedIn = !!account();
     hearts.forEach((b) => {
-      const on = saved.has(b.dataset.save);
+      const on = signedIn && saved.has(b.dataset.save);
       b.setAttribute('aria-pressed', String(on));
       b.setAttribute('aria-label', on ? `Remove ${b.dataset.saveName} from your saved homes` : `Save ${b.dataset.saveName}`);
     });
-    $$('[data-saved-count]').forEach((c) => { c.textContent = saved.size; });
+    $$('[data-saved-count]').forEach((c) => { c.textContent = signedIn ? saved.size : 0; });
+  };
+  // the profile row in the menu (and the profile button in the desktop bar)
+  const paintProfile = () => {
+    const acc = account();
+    const nm = acc ? (acc.name || acc.email.split('@')[0]) : '';
+    $$('[data-profile-initial]').forEach((el) => { el.innerHTML = acc ? nm[0].toUpperCase() : '<svg aria-hidden="true"><use href="#user"/></svg>'; el.classList.toggle('is-in', !!acc); });
+    $$('[data-profile-name]').forEach((el) => { el.textContent = acc ? (acc.name || 'Your profile') : 'Sign in'; });
+    $$('[data-profile-sub]').forEach((el) => { el.textContent = acc ? 'View your profile' : 'Save homes, see your viewings'; });
+    $$('[data-profile-link]').forEach((el) => el.setAttribute('aria-label', acc ? `Your profile (${nm})` : 'Sign in to your profile'));
   };
   const setSaved = (id, on) => {
     if (on) saved.add(id); else saved.delete(id);
@@ -158,24 +173,29 @@
     dispatchEvent(new Event('saved:change'));
   };
   const dlg = $('[data-signup]');
-  let pending = null, signIn = false, openSignup = null;
+  let pending = null, after = null, signIn = false, openSignup = null;
   if (dlg) {
     const form = $('[data-signup-form]', dlg);
     const status = $('[data-signup-status]', dlg);
     const mode = (inMode) => {
       signIn = inMode;
-      $('[data-signup-title]', dlg).textContent = signIn ? 'Sign in' : 'Save this home';
-      $('[data-signup-lead]', dlg).textContent = signIn ? 'Enter the email you signed up with to see your saved homes.' : "Make a free account to keep the homes you like in one place. We'll tell you if the price changes or an offer comes in.";
+      $('[data-signup-title]', dlg).textContent = signIn ? 'Sign in' : pending ? 'Save this home' : 'Make an account';
+      $('[data-signup-lead]', dlg).textContent = signIn
+        ? (pending ? 'Enter the email you signed up with to save this home.' : 'Enter the email you signed up with to see your profile, saved homes and viewings.')
+        : (pending ? "Make a free account to keep the homes you like in one place. We'll tell you if the price changes or an offer comes in." : 'Make a free account to save homes, keep track of your viewings and see the homes you looked at.');
       $$('[data-signup-only]', dlg).forEach((el) => { el.hidden = signIn; });
-      $('[data-signup-submit] span', dlg).textContent = signIn ? 'Sign in and save' : 'Create account and save';
+      $('[data-signup-submit] span', dlg).textContent = signIn ? (pending ? 'Sign in and save' : 'Sign in') : (pending ? 'Create account and save' : 'Create account');
+      const hs = $('[data-signup-submit] svg', dlg); if (hs) hs.style.display = pending ? '' : 'none'; // the heart only when saving a home
       $('[data-signup-ask]', dlg).textContent = signIn ? 'New here?' : 'Already have an account?';
       $('[data-signup-mode]', dlg).textContent = signIn ? 'Make an account' : 'Sign in';
       status.textContent = '';
     };
-    const open = (btn) => {
-      pending = btn; mode(false); form.reset();
-      const d = btn.dataset;
-      $('[data-signup-home]', dlg).innerHTML = `<img src="${d.saveImg}" alt="" width="84" height="63"><span><b>${d.savePrice}</b><span>${d.saveName}</span><small>${d.saveWhere}</small></span>`;
+    // btn: the heart that asked (or null); signin: open on Sign in; then: run after signing in
+    const open = (btn, { signin = false, then = null } = {}) => {
+      pending = btn; after = then; form.reset(); mode(signin);
+      const home = $('[data-signup-home]', dlg);
+      if (btn) { const d = btn.dataset; home.innerHTML = `<img src="${d.saveImg}" alt="" width="84" height="63"><span><b>${d.savePrice}</b><span>${d.saveName}</span><small>${d.saveWhere}</small></span>`; }
+      else home.innerHTML = '';
       dlg.showModal();
     };
     openSignup = open;
@@ -190,19 +210,81 @@
         : !signIn && !form.agree.checked ? ['agree', 'Please tick the box so we can keep your saved homes.'] : null;
       if (bad) { status.textContent = bad[1]; form[bad[0]].focus(); return; }
       const acc = store.get(ACC, null);
-      store.set(ACC, { name: signIn ? (acc?.email === email ? acc.name : '') : name, email });
+      const same = acc?.email === email;
+      store.set(ACC, { name: signIn ? (same ? acc.name : '') : name, email, since: same && acc.since ? acc.since : Date.now() });
       dlg.close();
-      if (pending) { setSaved(pending.dataset.save, true); toast(`${pending.dataset.saveName} saved. Find it under Saved on the listings page.`); pending.focus(); }
+      paintHearts(); paintProfile();
+      if (pending) { setSaved(pending.dataset.save, true); toast(`${pending.dataset.saveName} saved. Find it in your profile.`); pending.focus(); }
+      else toast(signIn ? 'You are signed in' : 'Your account is ready');
+      const then = after; after = null; then?.();
     });
   }
   hearts.forEach((b) => b.addEventListener('click', (e) => {
     e.preventDefault(); e.stopPropagation();
-    if (!store.get(ACC, null) && openSignup) { openSignup(b); return; }
+    if (!account() && openSignup) { openSignup(b); return; }
     const on = !saved.has(b.dataset.save);
     setSaved(b.dataset.save, on);
     toast(on ? `${b.dataset.saveName} saved` : `${b.dataset.saveName} removed from your saved homes`);
   }));
-  paintHearts();
+  // the profile row in the menu: signed out, it asks you to sign in first, then takes you to your profile
+  $$('[data-profile-link]').forEach((a) => a.addEventListener('click', (e) => {
+    if (account() || !openSignup) return;
+    e.preventDefault();
+    openSignup(null, { signin: true, then: () => { location.href = 'profile.html'; } });
+  }));
+  paintHearts(); paintProfile();
+
+  /* ---------- the profile page ---------- */
+  const pf = $('[data-profile]');
+  if (pf) {
+    const homes = JSON.parse($('#pf-homes').textContent);
+    const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const card = (id, extra = '') => { const h = homes[id]; return h ? `<a class="pf__home" href="${id}.html"><img src="${h.i}" alt="" width="480" height="360" loading="lazy"><span><b>${h.p}</b><span>${esc(h.n)}</span><small>${esc(h.a)} · ${h.b} bed · ${h.s} m²${extra}</small></span></a>` : ''; };
+    const ago = (t) => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`; };
+    const day = (k) => new Date(k + 'T12:00').toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' });
+    const n0 = new Date(), todayKey = `${n0.getFullYear()}-${String(n0.getMonth() + 1).padStart(2, '0')}-${String(n0.getDate()).padStart(2, '0')}`;
+    const empty = (html) => `<p class="pf__empty">${html}</p>`;
+    const draw = () => {
+      const acc = account();
+      $('[data-pf-out]').hidden = !!acc; $('[data-pf-in]').hidden = !acc;
+      if (!acc) return;
+      const nm = acc.name || acc.email.split('@')[0];
+      $('[data-pf-initial]').textContent = nm[0].toUpperCase();
+      $('[data-pf-name]').textContent = acc.name || 'Your profile';
+      $('[data-pf-email]').textContent = acc.email;
+      $('[data-pf-since]').textContent = acc.since ? `Member since ${new Date(acc.since).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}` : '';
+      const sv = [...saved].filter((id) => homes[id]);
+      $('[data-pf-saved]').innerHTML = sv.length
+        ? sv.map((id) => `<div class="pf__item">${card(id)}<button class="pf__remove" type="button" data-unsave="${id}" aria-label="Remove ${esc(homes[id].n)} from your saved homes"><svg aria-hidden="true"><use href="#heart"/></svg></button></div>`).join('')
+        : empty('No saved homes yet. Tap the heart on any listing to keep it here. <a href="listings.html">Browse the listings</a>');
+      const bk = store.get('cw-bookings', []).filter((b) => homes[b.house]).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+      $('[data-pf-viewings]').innerHTML = bk.length
+        ? bk.map((b) => { const up = b.date >= todayKey; return `<div class="pf__item">${card(b.house, ` · ${day(b.date)}, ${b.time}`)}<span class="pf__tag${up ? ' pf__tag--up' : ''}">${up ? 'Upcoming' : 'Past'}</span></div>`; }).join('')
+        : empty('No viewings booked yet. <a href="book.html">Book a viewing</a>');
+      const seen = store.get(SEEN, []).filter((s) => homes[s.id]);
+      $('[data-pf-seen]').innerHTML = seen.length
+        ? seen.map((s) => card(s.id, ` · viewed ${ago(s.t)}`)).join('')
+        : empty('The homes you open will show up here. <a href="listings.html">Browse the listings</a>');
+      $('[data-pf-n="saved"]').textContent = sv.length;
+      $('[data-pf-n="viewings"]').textContent = bk.length;
+      $('[data-pf-n="seen"]').textContent = seen.length;
+    };
+    draw();
+    $('[data-pf-signin]').addEventListener('click', () => openSignup?.(null, { signin: true, then: draw }));
+    $('[data-pf-join]').addEventListener('click', () => openSignup?.(null, { signin: false, then: draw }));
+    $('[data-pf-logout]').addEventListener('click', () => {
+      try { localStorage.removeItem(ACC); } catch { /* ignore */ }
+      paintHearts(); paintProfile(); draw(); toast('You are logged out'); window.scrollTo(0, 0);
+    });
+    $('[data-pf-delete]').addEventListener('click', () => {
+      if (!confirm('Delete your account, saved homes, viewings and history from this device? This cannot be undone.')) return;
+      try { [ACC, SAVED, SEEN, 'cw-bookings'].forEach((k) => localStorage.removeItem(k)); } catch { /* ignore */ }
+      saved.clear(); paintHearts(); paintProfile(); draw(); toast('Your account and data are deleted'); window.scrollTo(0, 0);
+    });
+    pf.addEventListener('click', (e) => { const b = e.target.closest('[data-unsave]'); if (b) { setSaved(b.dataset.unsave, false); draw(); toast('Removed from your saved homes'); } });
+    // arriving signed out: ask to sign in straight away
+    if (!account()) setTimeout(() => openSignup?.(null, { signin: true, then: draw }), 350);
+  }
 
   /* ---------- listing cards: swipe through the photos (arrows on a desktop), with a 1/7 counter ---------- */
   $$('[data-ph]').forEach((ph) => {
