@@ -55,6 +55,7 @@
   <symbol id="bath" viewBox="0 0 20 20"><path d="M2.5 10h15v1.5a4.5 4.5 0 0 1-4.5 4.5H7a4.5 4.5 0 0 1-4.5-4.5zM5 10V5.2a1.7 1.7 0 0 1 3.3-.6M6 16l-1 1.6M14 16l1 1.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="size" viewBox="0 0 20 20"><path d="M3 3h14v14H3zM3 7h2.5M3 11h2.5M7 3v2.5M11 3v2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="car" viewBox="0 0 20 20"><path d="M3 14v-3l1.8-4.2A1.5 1.5 0 0 1 6.2 6h7.6a1.5 1.5 0 0 1 1.4.8L17 11v3zM3 14v2h2.5v-2M14.5 14v2H17v-2M6 11.2h.01M14 11.2h.01" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="heart" viewBox="0 0 24 24"><path d="M12 20.3s-7.4-4.5-9.2-9.1C1.6 8 3.7 4.6 7.1 4.6c2 0 3.6 1.1 4.9 2.8 1.3-1.7 2.9-2.8 4.9-2.8 3.4 0 5.5 3.4 4.3 6.6-1.8 4.6-9.2 9.1-9.2 9.1z" stroke-width="1.8" stroke-linejoin="round"/></symbol>
   <symbol id="chat" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4h0A1.5 1.5 0 0 1 4 14.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8.5 9.5h7M8.5 12.5h4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
 </svg>
 <a class="skip" href="#main">Skip to content</a>
@@ -103,6 +104,13 @@
       <source media="(max-aspect-ratio: 1/1)" src="media/hero-m.mp4" type="video/mp4">
       <source src="media/hero.mp4" type="video/mp4">
     </video>
+    <!-- after the film: the four listings' exterior photos cross-fade here (main.js loads them only then) -->
+    <div class="hero__slides" data-hero-show aria-hidden="true">
+      <img class="hero__slide" alt="" sizes="100vw" data-src="https://images.unsplash.com/photo-1771366260867-7e07094579d7?w=1920&q=75&auto=format&fit=crop" data-srcset="https://images.unsplash.com/photo-1771366260867-7e07094579d7?w=828&q=75&auto=format&fit=crop 828w, https://images.unsplash.com/photo-1771366260867-7e07094579d7?w=1280&q=75&auto=format&fit=crop 1280w, https://images.unsplash.com/photo-1771366260867-7e07094579d7?w=1920&q=75&auto=format&fit=crop 1920w" data-cap="Linden Row · Constantia" data-href="linden-row.html">
+      <img class="hero__slide" alt="" sizes="100vw" data-src="https://images.unsplash.com/photo-1627141234469-24711efb373c?w=1920&q=75&auto=format&fit=crop" data-srcset="https://images.unsplash.com/photo-1627141234469-24711efb373c?w=828&q=75&auto=format&fit=crop 828w, https://images.unsplash.com/photo-1627141234469-24711efb373c?w=1280&q=75&auto=format&fit=crop 1280w, https://images.unsplash.com/photo-1627141234469-24711efb373c?w=1920&q=75&auto=format&fit=crop 1920w" data-cap="Mill Pond Road · Durbanville" data-href="mill-pond-road.html">
+      <img class="hero__slide" alt="" sizes="100vw" data-src="https://images.unsplash.com/photo-1613977257363-707ba9348227?w=1920&q=75&auto=format&fit=crop" data-srcset="https://images.unsplash.com/photo-1613977257363-707ba9348227?w=828&q=75&auto=format&fit=crop 828w, https://images.unsplash.com/photo-1613977257363-707ba9348227?w=1280&q=75&auto=format&fit=crop 1280w, https://images.unsplash.com/photo-1613977257363-707ba9348227?w=1920&q=75&auto=format&fit=crop 1920w" data-cap="Cavendish Close · Constantia" data-href="cavendish-close.html">
+      <img class="hero__slide" alt="" sizes="100vw" data-src="https://images.unsplash.com/photo-1783125127341-81112b795c23?w=1920&q=75&auto=format&fit=crop" data-srcset="https://images.unsplash.com/photo-1783125127341-81112b795c23?w=828&q=75&auto=format&fit=crop 828w, https://images.unsplash.com/photo-1783125127341-81112b795c23?w=1280&q=75&auto=format&fit=crop 1280w, https://images.unsplash.com/photo-1783125127341-81112b795c23?w=1920&q=75&auto=format&fit=crop 1920w" data-cap="Quarry Lane · Somerset West" data-href="quarry-lane.html">
+    </div>
     <span class="hero__notch" aria-hidden="true" data-notch></span>
     <details class="open" data-open-hours>
       <summary><span class="open__dot" aria-hidden="true"></span><span><b>Open hours</b> · <span data-open-status>Thu to Sun</span></span><svg class="open__chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></summary>
@@ -118,6 +126,7 @@
     </details>
     <div class="hero__inner">
       <div class="enter">
+        <div class="hero__show" data-hero-bar><span class="hero__dashes" aria-hidden="true"><i></i><i></i><i></i><i></i></span><a class="hero__cap" data-hero-cap href="listings.html" tabindex="-1" aria-hidden="true"></a></div>
         <span class="label">Cape Town · Four homes at a time</span>
         <h1 id="hero-h"><span class="thin">Four homes.</span><span class="bold">One family</span><span class="thin">an hour.</span></h1>
         <p class="hero__lead">Cape Town family homes, viewed in private. No show-day crowds, no rush.</p>
@@ -183,11 +192,16 @@
 
   <section class="section" id="listings" aria-label="Listings" style="padding-bottom:0">
     <div class="wrap">
-      <a class="band band--link" href="listings.html">
-        <img src="https://images.unsplash.com/photo-1613977257363-707ba9348227?w=1600&h=900&q=75&auto=format&fit=crop" alt="A white villa with balconies above a pool terrace" loading="lazy" decoding="async">
+      <a class="band band--link band--show" href="listings.html" data-show>
+        <img class="show__img is-on" src="https://images.unsplash.com/photo-1771366260867-7e07094579d7?w=1600&h=900&q=75&auto=format&fit=crop" srcset="https://images.unsplash.com/photo-1771366260867-7e07094579d7?w=800&h=450&q=75&auto=format&fit=crop 800w, https://images.unsplash.com/photo-1771366260867-7e07094579d7?w=1600&h=900&q=75&auto=format&fit=crop 1600w" sizes="(max-width: 1279px) 100vw, 1280px" width="1600" height="900" alt="The front of the house: white board-and-batten, a wooden door and olive trees" loading="lazy" decoding="async" data-cap="Linden Row · Constantia · R4,950,000">
+        <img class="show__img" src="https://images.unsplash.com/photo-1627141234469-24711efb373c?w=1600&h=900&q=75&auto=format&fit=crop" srcset="https://images.unsplash.com/photo-1627141234469-24711efb373c?w=800&h=450&q=75&auto=format&fit=crop 800w, https://images.unsplash.com/photo-1627141234469-24711efb373c?w=1600&h=900&q=75&auto=format&fit=crop 1600w" sizes="(max-width: 1279px) 100vw, 1280px" width="1600" height="900" alt="The black metal and timber front of the house" loading="lazy" decoding="async" data-cap="Mill Pond Road · Durbanville · R5,400,000">
+        <img class="show__img" src="https://images.unsplash.com/photo-1613977257363-707ba9348227?w=1600&h=900&q=75&auto=format&fit=crop" srcset="https://images.unsplash.com/photo-1613977257363-707ba9348227?w=800&h=450&q=75&auto=format&fit=crop 800w, https://images.unsplash.com/photo-1613977257363-707ba9348227?w=1600&h=900&q=75&auto=format&fit=crop 1600w" sizes="(max-width: 1279px) 100vw, 1280px" width="1600" height="900" alt="The white villa with balconies above the pool terrace" loading="lazy" decoding="async" data-cap="Cavendish Close · Constantia · R7,850,000">
+        <img class="show__img" src="https://images.unsplash.com/photo-1783125127341-81112b795c23?w=1600&h=900&q=75&auto=format&fit=crop" srcset="https://images.unsplash.com/photo-1783125127341-81112b795c23?w=800&h=450&q=75&auto=format&fit=crop 800w, https://images.unsplash.com/photo-1783125127341-81112b795c23?w=1600&h=900&q=75&auto=format&fit=crop 1600w" sizes="(max-width: 1279px) 100vw, 1280px" width="1600" height="900" alt="The white single-storey front with two garage doors" loading="lazy" decoding="async" data-cap="Quarry Lane · Somerset West · R5,150,000">
         <div class="band__body">
           <span class="label">Listings</span>
           <h2><span class="thin">Four homes,</span> <span class="bold">no crowds.</span></h2>
+          <div class="show__bar" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+          <p class="show__cap" data-show-cap aria-hidden="true">Linden Row · Constantia · R4,950,000</p>
           <div class="row"><span class="btn btn--primary">View listings <svg class="arrow" aria-hidden="true"><use href="#arrow"/></svg></span></div>
         </div>
       </a>

@@ -130,43 +130,189 @@
     sizeNotch();
   }
 
-  /* ---------- listings: filter by area, beds and price, sort; the map pins follow the list ---------- */
+  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- saved homes: the heart needs an account, so the first tap opens the sign-up ----------
+     DEMO: the account and the saved list live in localStorage. For a real client, swap store.* for Supabase Auth + a table. */
+  const ACC = 'cw-account', SAVED = 'cw-saved';
+  const store = {
+    get: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
+    set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode: this visit only */ } },
+  };
+  const saved = new Set(store.get(SAVED, []));
+  const hearts = $$('[data-save]');
+  const toast = (msg) => {
+    let t = $('.toast');
+    if (!t) { t = document.createElement('p'); t.className = 'toast'; t.setAttribute('role', 'status'); document.body.append(t); }
+    t.textContent = msg; t.classList.add('is-on');
+    clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('is-on'), 2600);
+  };
+  const paintHearts = () => {
+    hearts.forEach((b) => {
+      const on = saved.has(b.dataset.save);
+      b.setAttribute('aria-pressed', String(on));
+      b.setAttribute('aria-label', on ? `Remove ${b.dataset.saveName} from your saved homes` : `Save ${b.dataset.saveName}`);
+    });
+    $$('[data-saved-count]').forEach((c) => { c.textContent = saved.size; });
+  };
+  const setSaved = (id, on) => {
+    if (on) saved.add(id); else saved.delete(id);
+    store.set(SAVED, [...saved]); paintHearts();
+    dispatchEvent(new Event('saved:change'));
+  };
+  const dlg = $('[data-signup]');
+  let pending = null, signIn = false, openSignup = null;
+  if (dlg) {
+    const form = $('[data-signup-form]', dlg);
+    const status = $('[data-signup-status]', dlg);
+    const mode = (inMode) => {
+      signIn = inMode;
+      $('[data-signup-title]', dlg).textContent = signIn ? 'Sign in' : 'Save this home';
+      $('[data-signup-lead]', dlg).textContent = signIn ? 'Enter the email you signed up with to see your saved homes.' : "Make a free account to keep the homes you like in one place. We'll tell you if the price changes or an offer comes in.";
+      $$('[data-signup-only]', dlg).forEach((el) => { el.hidden = signIn; });
+      $('[data-signup-submit] span', dlg).textContent = signIn ? 'Sign in and save' : 'Create account and save';
+      $('[data-signup-ask]', dlg).textContent = signIn ? 'New here?' : 'Already have an account?';
+      $('[data-signup-mode]', dlg).textContent = signIn ? 'Make an account' : 'Sign in';
+      status.textContent = '';
+    };
+    const open = (btn) => {
+      pending = btn; mode(false); form.reset();
+      const d = btn.dataset;
+      $('[data-signup-home]', dlg).innerHTML = `<img src="${d.saveImg}" alt="" width="84" height="63"><span><b>${d.savePrice}</b><span>${d.saveName}</span><small>${d.saveWhere}</small></span>`;
+      dlg.showModal();
+    };
+    openSignup = open;
+    $('[data-signup-mode]', dlg).addEventListener('click', () => mode(!signIn));
+    $('[data-signup-close]', dlg).addEventListener('click', () => dlg.close());
+    dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); }); // tap outside the card
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = form.name.value.trim(), email = form.email.value.trim();
+      const bad = !signIn && !name ? ['name', 'Please add your name.']
+        : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? ['email', 'Please check your email address.']
+        : !signIn && !form.agree.checked ? ['agree', 'Please tick the box so we can keep your saved homes.'] : null;
+      if (bad) { status.textContent = bad[1]; form[bad[0]].focus(); return; }
+      const acc = store.get(ACC, null);
+      store.set(ACC, { name: signIn ? (acc?.email === email ? acc.name : '') : name, email });
+      dlg.close();
+      if (pending) { setSaved(pending.dataset.save, true); toast(`${pending.dataset.saveName} saved. Find it under Saved on the listings page.`); pending.focus(); }
+    });
+  }
+  hearts.forEach((b) => b.addEventListener('click', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (!store.get(ACC, null) && openSignup) { openSignup(b); return; }
+    const on = !saved.has(b.dataset.save);
+    setSaved(b.dataset.save, on);
+    toast(on ? `${b.dataset.saveName} saved` : `${b.dataset.saveName} removed from your saved homes`);
+  }));
+  paintHearts();
+
+  /* ---------- listing cards: swipe through the photos (arrows on a desktop), with a 1/7 counter ---------- */
+  $$('[data-ph]').forEach((ph) => {
+    const track = $('[data-ph-track]', ph), count = $('[data-ph-count]', ph);
+    const prev = $('[data-ph-prev]', ph), next = $('[data-ph-next]', ph);
+    const slides = [...track.children], n = slides.length;
+    const at = () => Math.round(track.scrollLeft / (track.clientWidth || 1));
+    const update = () => {
+      const k = Math.min(n - 1, Math.max(0, at()));
+      count.textContent = `${k + 1}/${n}`;
+      prev.disabled = k === 0; next.disabled = k === n - 1;
+      slides.forEach((s, j) => { s.tabIndex = j === k ? 0 : -1; });
+    };
+    const go = (d) => { track.scrollTo({ left: (at() + d) * track.clientWidth, behavior: calm ? 'auto' : 'smooth' }); setTimeout(update, 450); };
+    prev.addEventListener('click', (e) => { e.preventDefault(); go(-1); });
+    next.addEventListener('click', (e) => { e.preventDefault(); go(1); });
+    track.addEventListener('scroll', update, { passive: true });
+    update();
+  });
+
+  /* ---------- slideshows of the listings' exterior photos: the home page's listings band, and the hero once its film has ended ---------- */
+  const runShow = (box, imgs, dashes, cap) => {
+    let i = 0, on = true;
+    const show = (n) => {
+      i = (n + imgs.length) % imgs.length;
+      imgs.forEach((im, k) => im.classList.toggle('is-on', k === i));
+      dashes.forEach((d, k) => { d.classList.toggle('is-done', k < i); d.classList.remove('is-on'); });
+      if (dashes[i]) { void dashes[i].offsetWidth; dashes[i].classList.add('is-on'); }
+      if (cap) { cap.textContent = imgs[i].dataset.cap; if (imgs[i].dataset.href) cap.href = imgs[i].dataset.href; }
+    };
+    show(0);
+    if (calm) return;
+    new IntersectionObserver(([e]) => { on = e.isIntersecting; box.classList.toggle('is-paused', !on); }).observe(box);
+    setInterval(() => { if (on && !document.hidden) show(i + 1); }, 5000);
+  };
+  const band = $('[data-show]');
+  if (band) runShow(band, $$('.show__img', band), $$('.show__bar i', band), $('[data-show-cap]', band));
+  const heroShow = $('[data-hero-show]');
+  if (heroShow && !calm) {
+    const bar = $('[data-hero-bar]');
+    let begun = false;
+    const begin = () => {
+      if (begun) return; begun = true;
+      const imgs = $$('.hero__slide', heroShow);
+      imgs.forEach((im) => { im.srcset = im.dataset.srcset; im.src = im.dataset.src; });
+      const go = () => { bar?.classList.add('is-on'); runShow($('.hero'), imgs, bar ? $$('i', bar) : [], $('[data-hero-cap]')); };
+      imgs[0].decode ? imgs[0].decode().then(go, go) : imgs[0].addEventListener('load', go, { once: true });
+    };
+    // first visit: wait for the film to end and the hero to settle; later visits: a few seconds on the still first
+    if (document.documentElement.classList.contains('hero-film')) {
+      addEventListener('hero:settled', () => setTimeout(begin, 2600), { once: true });
+      setTimeout(begin, 16000); // safety net
+    } else setTimeout(begin, 4000);
+  }
+
+  /* ---------- listings: filter by area, beds and price, sort, saved only; the map pins follow the list ---------- */
   const filters = $('[data-filters]');
   if (filters) {
     const list = $('[data-list]');
     const cards = $$('[data-card]', list);
     const count = $('[data-count]');
     const empty = $('[data-empty]');
+    const spot = $('[data-spot]');
+    const onlySaved = $('[data-saved-only]');
     const pins = new Map($$('[data-pin]').map((p) => [p.dataset.pin, p]));
     const sorts = { 'price-asc': (c) => +c.dataset.price, 'price-desc': (c) => -c.dataset.price, views: (c) => -c.dataset.views, sqm: (c) => -c.dataset.sqm };
     const apply = () => {
       const area = filters.area.value;
       const beds = +filters.beds.value || 0;
       const [lo, hi] = (filters.price.value || '0-999999999').split('-').map(Number);
+      const mine = onlySaved?.getAttribute('aria-pressed') === 'true';
       const key = sorts[filters.sort.value] || sorts['price-asc'];
       cards.sort((a, b) => key(a) - key(b)).forEach((c) => list.appendChild(c));
       let shown = 0;
       cards.forEach((c) => {
         const p = +c.dataset.price;
-        const ok = (!area || c.dataset.area === area) && +c.dataset.beds >= beds && p >= lo && p < hi;
+        const ok = (!area || c.dataset.area === area) && +c.dataset.beds >= beds && p >= lo && p < hi && (!mine || saved.has(c.dataset.id));
         c.hidden = !ok; if (ok) shown++;
         pins.get(c.dataset.id)?.classList.toggle('is-off', !ok);
       });
-      count.textContent = `${shown} more ${shown === 1 ? 'home' : 'homes'}${area ? ` in ${area}` : ' on our books'}`;
-      empty.hidden = shown > 0;
+      const spotOn = !mine || (spot && saved.has(spot.dataset.spot));
+      if (spot) { spot.hidden = !spotOn; pins.get(spot.dataset.spot)?.classList.toggle('is-off', !spotOn); }
+      const n = shown + (mine && spotOn ? 1 : 0);
+      count.textContent = mine ? `${n} saved ${n === 1 ? 'home' : 'homes'}`
+        : `${shown} more ${shown === 1 ? 'home' : 'homes'}${area ? ` in ${area}` : ' on our books'}`;
+      empty.hidden = mine ? n > 0 : shown > 0;
     };
     const q = new URLSearchParams(location.search);
     if (q.get('area')) filters.area.value = q.get('area');
     if (q.get('price')) filters.price.value = q.get('price');
     filters.addEventListener('change', apply);
-    filters.addEventListener('reset', () => setTimeout(apply));
+    filters.addEventListener('reset', () => { onlySaved?.setAttribute('aria-pressed', 'false'); setTimeout(apply); });
     $('[data-clear]')?.addEventListener('click', () => filters.reset());
-    // hovering a row lights its pin, and the other way round
+    onlySaved?.addEventListener('click', () => {
+      if (!store.get(ACC, null) && !saved.size) { toast('Tap the heart on a home to save it'); return; }
+      onlySaved.setAttribute('aria-pressed', String(onlySaved.getAttribute('aria-pressed') !== 'true')); apply();
+    });
+    addEventListener('saved:change', apply);
+    // hovering a card lights its pin, and the other way round
     cards.forEach((c) => {
       const p = pins.get(c.dataset.id);
       if (!p) return;
       const on = (v) => { c.classList.toggle('is-hot', v); p.classList.toggle('is-hot', v); };
-      [c, p].forEach((el) => { el.addEventListener('pointerenter', () => on(true)); el.addEventListener('pointerleave', () => on(false)); el.addEventListener('focus', () => on(true)); el.addEventListener('blur', () => on(false)); });
+      c.addEventListener('pointerenter', () => on(true)); c.addEventListener('pointerleave', () => on(false));
+      c.addEventListener('focusin', () => on(true)); c.addEventListener('focusout', () => on(false));
+      p.addEventListener('pointerenter', () => on(true)); p.addEventListener('pointerleave', () => on(false));
+      p.addEventListener('focus', () => on(true)); p.addEventListener('blur', () => on(false));
     });
     // tablets and phones: the map sits behind a Map button
     const toggle = $('[data-map-toggle]');
@@ -635,6 +781,7 @@
     const settle = () => {
       if (settled) return; settled = true;
       root.classList.remove('hero-film', 'intro-hold');
+      dispatchEvent(new Event('hero:settled'));
       setTimeout(() => dispatchEvent(new Event('resize')), 1500); // re-measure the cut-out once the frame is back
     };
     const endFilm = () => {
