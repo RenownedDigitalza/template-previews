@@ -239,7 +239,7 @@
     show(0);
     if (calm) return;
     new IntersectionObserver(([e]) => { on = e.isIntersecting; box.classList.toggle('is-paused', !on); }).observe(box);
-    setInterval(() => { if (on && !document.hidden) show(i + 1); }, 3500);
+    setInterval(() => { if (on && !document.hidden) show(i + 1); }, 2500);
   };
   const band = $('[data-show]');
   if (band) runShow(band, $$('.show__img', band), $$('.show__bar i', band), $('[data-show-cap]', band));
@@ -254,11 +254,11 @@
       const go = () => { bar?.classList.add('is-on'); runShow($('.hero'), imgs, bar ? $$('i', bar) : [], $('[data-hero-cap]')); };
       imgs[0].decode ? imgs[0].decode().then(go, go) : imgs[0].addEventListener('load', go, { once: true });
     };
-    // first visit: wait for the film to end and the hero to settle; later visits: a few seconds on the still first
+    // first visit: wait for the film to end and the hero to settle; later visits: a moment on the still first
     if (document.documentElement.classList.contains('hero-film')) {
-      addEventListener('hero:settled', () => setTimeout(begin, 2600), { once: true });
+      addEventListener('hero:settled', () => setTimeout(begin, 1200), { once: true });
       setTimeout(begin, 16000); // safety net
-    } else setTimeout(begin, 4000);
+    } else setTimeout(begin, 1500);
   }
 
   /* ---------- listings: filter by area, beds and price, sort, saved only; the map pins follow the list ---------- */
