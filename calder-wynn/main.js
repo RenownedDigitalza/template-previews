@@ -239,7 +239,7 @@
     show(0);
     if (calm) return;
     new IntersectionObserver(([e]) => { on = e.isIntersecting; box.classList.toggle('is-paused', !on); }).observe(box);
-    setInterval(() => { if (on && !document.hidden) show(i + 1); }, 5000);
+    setInterval(() => { if (on && !document.hidden) show(i + 1); }, 3500);
   };
   const band = $('[data-show]');
   if (band) runShow(band, $$('.show__img', band), $$('.show__bar i', band), $('[data-show-cap]', band));
