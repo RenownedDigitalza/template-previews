@@ -234,14 +234,16 @@
   // swiping a slideshow. Touch uses touch events (the most dependable on phones); a mouse can drag too.
   // Only sideways moves count: up-and-down still scrolls the page, and buttons and links inside keep working.
   const swipe = (el, prev, next) => {
-    let x0 = null, y0 = 0, moved = false;
+    let x0 = null, y0 = 0, t0 = 0, moved = false;
     const skip = (t) => t.closest('button, summary, details, .btn, .hero__cap, .hero__cut, .open');
-    const start = (x, y, t) => { if (skip(t)) { x0 = null; return; } x0 = x; y0 = y; moved = false; };
+    const start = (x, y, t) => { if (skip(t)) { x0 = null; return; } x0 = x; y0 = y; t0 = performance.now(); moved = false; };
     const move = (x) => { if (x0 !== null && Math.abs(x - x0) > 8) moved = true; };
     const end = (x, y) => {
       if (x0 === null) return;
       const dx = x - x0, dy = y - y0; x0 = null;
-      if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy)) (dx < 0 ? next : prev)();
+      // a slow drag must travel 30px; a quick flick counts from 12px, even if it is a little diagonal
+      const quick = performance.now() - t0 < 250;
+      if ((Math.abs(dx) > 30 || (quick && Math.abs(dx) > 12)) && Math.abs(dx) > Math.abs(dy) * (quick ? 0.8 : 1)) (dx < 0 ? next : prev)();
     };
     el.addEventListener('touchstart', (e) => { if (e.touches.length === 1) start(e.touches[0].clientX, e.touches[0].clientY, e.target); else x0 = null; }, { passive: true });
     el.addEventListener('touchmove', (e) => move(e.touches[0].clientX), { passive: true });
@@ -273,7 +275,7 @@
         im.classList.add('is-on');
         i = next; mark(); busy = false;
         const tok = ++seq;
-        setTimeout(() => { if (tok === seq) cur.classList.remove('is-prev'); }, 1400); // once the new photo fully covers it
+        setTimeout(() => { if (tok === seq) cur.classList.remove('is-prev'); }, box.classList.contains('is-manual') ? 450 : 1400); // once the new photo fully covers it
         neighbours();
         step();
       });
@@ -283,7 +285,10 @@
     let timer = 0;
     const loop = () => { clearTimeout(timer); if (!calm) timer = setTimeout(() => { if (on && !document.hidden) show(goal + 1); loop(); }, EVERY); };
     // swipe (or drag with a mouse) left or right to move by hand; the timer starts again from there
-    swipe(box, () => { show(goal - 1); loop(); }, () => { show(goal + 1); loop(); });
+    // by hand: a quick fade (CSS .is-manual), and every photo of this slideshow starts loading so fast swipes never wait
+    let manualT = 0, all = false;
+    const byHand = (d) => { box.classList.add('is-manual'); clearTimeout(manualT); manualT = setTimeout(() => box.classList.remove('is-manual'), 1600); if (!all) { all = true; imgs.forEach(ready); } show(goal + d); loop(); };
+    swipe(box, () => byHand(-1), () => byHand(1));
     neighbours();
     if (calm) return;
     new IntersectionObserver(([e]) => { on = e.isIntersecting; box.classList.toggle('is-paused', !on); }).observe(box);
