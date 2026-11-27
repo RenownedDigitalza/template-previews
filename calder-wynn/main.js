@@ -231,6 +231,24 @@
     im.loading = 'eager';
     return im.decode ? im.decode().catch(() => {}) : Promise.resolve();
   };
+  // a horizontal swipe on the slideshow; vertical scrolling is left to the page, and buttons and links inside keep working
+  const swipe = (el, prev, next) => {
+    let x0 = null, y0 = 0, moved = false;
+    el.addEventListener('pointerdown', (e) => {
+      if ((e.pointerType === 'mouse' && e.button !== 0) || e.target.closest('button, summary, details, .btn, .hero__cap, .hero__cut')) return;
+      x0 = e.clientX; y0 = e.clientY; moved = false;
+    });
+    el.addEventListener('pointermove', (e) => { if (x0 !== null && Math.abs(e.clientX - x0) > 8) moved = true; });
+    const end = (e) => {
+      if (x0 === null) return;
+      const dx = e.clientX - x0, dy = e.clientY - y0; x0 = null;
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.2) (dx < 0 ? next : prev)();
+    };
+    el.addEventListener('pointerup', end);
+    el.addEventListener('pointercancel', () => { x0 = null; });
+    el.addEventListener('click', (e) => { if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; } }, true); // a swipe is not a tap
+    el.addEventListener('dragstart', (e) => e.preventDefault()); // no ghost image when dragging with a mouse
+  };
   const runShow = (box, imgs, dashes, cap) => {
     let i = 0, on = true, busy = false;
     const mark = () => {
@@ -251,10 +269,14 @@
       });
     };
     mark();
+    let timer = 0;
+    const loop = () => { clearTimeout(timer); if (!calm) timer = setTimeout(() => { if (on && !document.hidden) show(i + 1); loop(); }, EVERY); };
+    // swipe (or drag with a mouse) left or right to move by hand; the timer starts again from there
+    swipe(box, () => { show(i - 1); loop(); }, () => { show(i + 1); loop(); });
     if (calm) return;
     ready(imgs[1 % imgs.length]);
     new IntersectionObserver(([e]) => { on = e.isIntersecting; box.classList.toggle('is-paused', !on); }).observe(box);
-    setInterval(() => { if (on && !document.hidden) show(i + 1); }, EVERY);
+    loop();
   };
   const band = $('[data-show]');
   if (band) runShow(band, $$('.show__img', band), $$('.show__bar i', band), $('[data-show-cap]', band));
