@@ -75,20 +75,10 @@
   addEventListener('scroll', () => { if (isOpen()) place(); }, { passive: true });
   addEventListener('resize', () => { if (isOpen()) place(); });
 
-  /* the strips loop seamlessly and never stop on a tap; only the pause button (desktop) stops them */
+  /* the strips loop seamlessly at one fixed speed: nothing pauses, slows or stops them */
   $$('.strip__track').forEach((track) => {
     [...track.children].forEach((chip) => { const c = chip.cloneNode(true); c.setAttribute('aria-hidden', 'true'); track.appendChild(c); });
   });
-  const strips = $('#strips');
-  if (strips) {
-    const pause = $('.strips__pause', strips);
-    pause.addEventListener('click', () => {
-      const on = strips.classList.toggle('is-paused');
-      pause.setAttribute('aria-pressed', String(on));
-      pause.setAttribute('aria-label', on ? 'Play the moving strips' : 'Pause the moving strips');
-    });
-  }
-
   /* version B: the top-left cut-out is sized to hold the logo and (from tablet up) the open-hours pill */
   const notch = $('[data-notch]');
   const sizeNotch = () => {
