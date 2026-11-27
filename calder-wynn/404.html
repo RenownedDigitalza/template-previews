@@ -30,7 +30,7 @@
 // the photo-flies-into-the-page animation only runs going INTO a house page. Leaving one (back button or a link),
 // the photos would fly back to cards that have moved, which looks like the page reshuffling, so it is skipped.
 (() => {
-  const houses = ["linden-row.html","mill-pond-road.html","cavendish-close.html","quarry-lane.html"];
+  const houses = ["linden-row.html","mill-pond-road.html","cavendish-close.html","quarry-lane.html","kloof-terrace.html","glen-crescent.html","oak-hollow.html","harbour-ridge.html","beach-road-apartment.html","stadium-view.html","fish-eagle-lane.html","sandy-cove.html","upper-bishops.html","protea-close.html","liesbeek-walk.html","chapel-gardens.html","campground-row.html","forest-glade.html","vineyard-way.html","silvertree-close.html","vlei-view.html","kite-beach-house.html","aurora-heights.html","rosewood-crest.html","panorama-rise.html","lagoon-gate.html","helderberg-view.html","eikehof.html","jonkershoek-house.html","bay-crescent.html"];
   const isHouse = (url) => !!url && houses.some((h) => new URL(url, location.href).pathname.endsWith('/' + h));
   addEventListener('pageswap', (e) => { if (e.viewTransition && (isHouse(location.href) || e.activation?.navigationType === 'traverse')) e.viewTransition.skipTransition(); });
   addEventListener('pagereveal', (e) => { const a = window.navigation?.activation; if (e.viewTransition && a && (isHouse(a.from?.url) || a.navigationType === 'traverse')) e.viewTransition.skipTransition(); });

@@ -261,7 +261,7 @@
     } else setTimeout(begin, 1500);
   }
 
-  /* ---------- listings: filter by area, beds and price, sort, saved only; the map pins follow the list ---------- */
+  /* ---------- listings: filter by region, beds and price, sort, saved only; 10 at a time; the map pins follow the list ---------- */
   const filters = $('[data-filters]');
   if (filters) {
     const list = $('[data-list]');
@@ -271,6 +271,9 @@
     const spot = $('[data-spot]');
     const onlySaved = $('[data-saved-only]');
     const pins = new Map($$('[data-pin]').map((p) => [p.dataset.pin, p]));
+    const moreBtn = $('[data-more-homes]');
+    const PAGE = 10;
+    let limit = PAGE;
     const sorts = { 'price-asc': (c) => +c.dataset.price, 'price-desc': (c) => -c.dataset.price, views: (c) => -c.dataset.views, sqm: (c) => -c.dataset.sqm };
     const apply = () => {
       const area = filters.area.value;
@@ -282,13 +285,17 @@
       let shown = 0;
       cards.forEach((c) => {
         const p = +c.dataset.price;
-        const ok = (!area || c.dataset.area === area) && +c.dataset.beds >= beds && p >= lo && p < hi && (!mine || saved.has(c.dataset.id));
-        c.hidden = !ok; if (ok) shown++;
+        const ok = (!area || c.dataset.region === area) && +c.dataset.beds >= beds && p >= lo && p < hi && (!mine || saved.has(c.dataset.id));
+        if (ok) shown++;
+        c.classList.toggle('is-out', !ok);
+        c.hidden = !ok || shown > limit; // filtered out, or past the 'show more' line
         pins.get(c.dataset.id)?.classList.toggle('is-off', !ok);
       });
       const spotOn = !mine || (spot && saved.has(spot.dataset.spot));
       if (spot) { spot.hidden = !spotOn; pins.get(spot.dataset.spot)?.classList.toggle('is-off', !spotOn); }
       const n = shown + (mine && spotOn ? 1 : 0);
+      const left = shown - limit;
+      if (moreBtn) { moreBtn.hidden = left <= 0; moreBtn.textContent = `Show ${Math.min(PAGE, left)} more ${Math.min(PAGE, left) === 1 ? 'home' : 'homes'} (${left} left)`; }
       count.textContent = mine ? `${n} saved ${n === 1 ? 'home' : 'homes'}`
         : `${shown} more ${shown === 1 ? 'home' : 'homes'}${area ? ` in ${area}` : ' on our books'}`;
       empty.hidden = mine ? n > 0 : shown > 0;
@@ -296,8 +303,13 @@
     const q = new URLSearchParams(location.search);
     if (q.get('area')) filters.area.value = q.get('area');
     if (q.get('price')) filters.price.value = q.get('price');
-    filters.addEventListener('change', apply);
-    filters.addEventListener('reset', () => { onlySaved?.setAttribute('aria-pressed', 'false'); setTimeout(apply); });
+    filters.addEventListener('change', () => { limit = PAGE; apply(); });
+    moreBtn?.addEventListener('click', () => {
+      const first = cards.find((c) => c.hidden && !c.classList.contains('is-out'));
+      limit += PAGE; apply();
+      first?.querySelector('.hrow__link')?.focus({ preventScroll: true }); // keyboard users land on the first new home
+    });
+    filters.addEventListener('reset', () => { onlySaved?.setAttribute('aria-pressed', 'false'); limit = PAGE; setTimeout(apply); });
     $('[data-clear]')?.addEventListener('click', () => filters.reset());
     onlySaved?.addEventListener('click', () => {
       if (!store.get(ACC, null) && !saved.size) { toast('Tap the heart on a home to save it'); return; }
@@ -387,6 +399,12 @@
       $('[data-next]', s1).disabled = false; sum();
     };
     radios.forEach((r) => r.addEventListener('change', () => pickHouse(r)));
+    const find = $('[data-pick-find]');
+    find?.addEventListener('input', () => {
+      const q = find.value.trim().toLowerCase(); let n = 0;
+      radios.forEach((r) => { const hit = !q || r.dataset.find.includes(q) || r.checked; r.closest('label').hidden = !hit; if (hit) n++; });
+      $('[data-pick-none]').hidden = n > 0;
+    });
     const pre = new URLSearchParams(location.search).get('house');
     const preR = radios.find((r) => r.value === pre);
     if (preR) { preR.checked = true; pickHouse(preR); }
@@ -504,27 +522,30 @@
   const cavendish = houseCard('Cavendish Close, Constantia', '1613977257363-707ba9348227', '5 bed · 4 bath · 307 m² · R7,850,000', 'cavendish-close.html');
 
   const replies = [
-    [/pool|swim/i, () => `Cavendish Close in Constantia has the pool: a north-facing terrace with a covered braai and outdoor kitchen. ${cavendish}Want me to hold a viewing?`],
+    [/pool|swim/i, () => `Plenty of our homes have one. Cavendish Close in Constantia is a favourite: a north-facing pool terrace with a covered braai and outdoor kitchen. ${cavendish}Want me to hold a viewing, or show you the others with pools?`],
     [/sunday|saturday|friday|thursday|weekend|when|time|view/i, () => 'Viewings run Thursday to Sunday. You can see every free time live and book in three steps here: <a href="book.html">book a viewing</a>. Or tell me the house and day and I\'ll hold it for you.'],
     [/negotia|offer|price|cheaper|discount/i, () => "I can't agree a price myself, but the sellers do consider offers. Tom handles offers in person after a viewing, usually within 48 hours. Shall I book you in first?"],
     [/person|human|agent|call|speak|talk/i, () => 'Of course. Tom from the office will message you here within the hour, or call 021 555 0142 now (Thu–Sun 09:00–18:00).'],
-    [/bed|room|big|large|family/i, () => 'Bedrooms by house:\n• Cavendish Close, Constantia: 5 bed\n• Linden Row, Constantia: 4 bed\n• Quarry Lane, Somerset West: 4 bed, all on one floor\n• Mill Pond Road, Durbanville: 3 bed\nAny of them catch your eye?'],
-    [/constantia|durbanville|somerset/i, (m) => `In ${m[0][0].toUpperCase() + m[0].slice(1).toLowerCase()} we have ${/constantia/i.test(m[0]) ? 'Linden Row (R4,950,000) and Cavendish Close (R7,850,000)' : /durbanville/i.test(m[0]) ? 'Mill Pond Road (R5,400,000)' : 'Quarry Lane (R5,150,000)'}. See them all on <a href="listings.html">the listings</a>.`],
+    [/bed|room|big|large|family/i, () => 'We have homes from 2 to 6 bedrooms, from Sea Point apartments to Bishopscourt family houses. You can filter by bedrooms here: <a href="listings.html">see the listings</a>. How many bedrooms do you need?'],
+    [/atlantic|camps bay|hout bay|sea point|llandudno|noordhoek/i, () => 'Our Atlantic Seaboard homes run from Sea Point apartments to a Llandudno villa. Daniel covers that side: <a href="listings.html?area=Atlantic%20Seaboard">see them here</a>.'],
+    [/southern|constantia|bishopscourt|newlands|rondebosch|tokai|bergvliet/i, () => 'In the Southern Suburbs we have family homes from Rondebosch to Constantia. Lerato covers them: <a href="listings.html?area=Southern%20Suburbs">see them here</a>.'],
+    [/northern|durbanville|bloubergstrand|blouberg|milnerton|welgemoed|plattekloof/i, () => 'Our Northern Suburbs homes are from Bloubergstrand to Durbanville. Ayesha covers them: <a href="listings.html?area=Northern%20Suburbs">see them here</a>.'],
+    [/helderberg|somerset|stellenbosch|gordon/i, () => 'In the Helderberg we have homes in Somerset West, Stellenbosch and Gordon\'s Bay. Sipho covers them: <a href="listings.html?area=Helderberg">see them here</a>.'],
     [/linden|mill|cavendish|quarry/i, (m) => `${m[0][0].toUpperCase() + m[0].slice(1).toLowerCase()} is available. Every photo, the details and the features are on its page, and I can hold a viewing for you right here.`],
-    [/hi|hello|hey|morning|afternoon|howzit/i, () => 'Hi! 👋 Ask me about any of the four houses, or tell me a day and I\'ll find you a viewing time.'],
+    [/hi|hello|hey|morning|afternoon|howzit/i, () => 'Hi! 👋 Ask me about any of our homes, or tell me a day and I\'ll find you a viewing time.'],
     [/thank|great|perfect|cool|ok|sharp/i, () => "You're welcome! Anything else, just message me here. 😊"],
   ];
   const answer = (text) => {
     for (const [re, fn] of replies) { const m = text.match(re); if (m) return fn(m); }
-    return "Good question! I'll pass that to Tom in the office and he'll reply here shortly. Meanwhile, I can find you a viewing time or tell you about any of the four houses.";
+    return "Good question! I'll pass that to Tom in the office and he'll reply here shortly. Meanwhile, I can find you a viewing time or tell you about any of our homes.";
   };
 
   let played = false;
   const playDemo = () => {
     played = true;
-    bot('Hi 👋 I\'m the Calder &amp; Wynn assistant. I can answer questions about our four houses and book you a viewing, any time of day.', 700);
+    bot('Hi 👋 I\'m the Calder &amp; Wynn assistant. I can answer questions about our homes and book you a viewing, any time of day.', 700);
     me('Hi, is Cavendish Close still available?', 1200);
-    bot(`Yes, it is! ${cavendish}It's the largest of the four, with a pool terrace and an outdoor kitchen.`, 1500);
+    bot(`Yes, it is! ${cavendish}It has five bedrooms, a pool terrace and an outdoor kitchen.`, 1500);
     me('Can we see it this Saturday?', 1400);
     bot('Saturday has three free slots at Cavendish Close: 09:30, 11:00 or 13:30. Which suits you?', 1300);
     me('11:00 please, there will be 4 of us', 1500);
