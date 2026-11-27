@@ -750,7 +750,7 @@
     box.replaceChildren(f);
     const note = box.parentElement.querySelector('[data-map-note]');
     if (note) {
-      note.textContent = 'Google Maps is on for this site, so Google receives your IP address. ';
+      note.textContent = 'The live map is on, so some information is shared with Google. ';
       const off = document.createElement('button');
       off.type = 'button'; off.textContent = 'Turn it off';
       off.addEventListener('click', () => { try { localStorage.setItem(MAPS, '0'); } catch { /* ignore */ } location.reload(); });
