@@ -15,7 +15,7 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://images.unsplash.com">
 <link rel="preload" href="fonts/instrument-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="styles.min.css?v=d11bd498">
+<link rel="stylesheet" href="styles.min.css?v=2985d8a8">
 <script>
 // logo intro: once per visit (tab session), never with reduced motion. The CSS runs it; this only switches it on and off.
 (() => { try {
@@ -103,6 +103,20 @@
       <button type="button" data-open-photo="2" aria-label="Open photo 3 of 6"><img src="https://images.unsplash.com/photo-1725257928373-dc6d2ac7b145?w=700&h=520&q=62&auto=format&fit=crop" alt="A kitchen opening onto a dining table" loading="lazy" decoding="async"></button>
       <button type="button" data-open-photo="3" aria-label="Open photo 4 of 6"><img src="https://images.unsplash.com/photo-1617325247661-675ab4b64ae2?w=700&h=520&q=62&auto=format&fit=crop" alt="A bedroom with a low timber bed frame" loading="lazy" decoding="async"></button>
       <button type="button" data-open-photo="4" aria-label="Open photo 5 of 6"><img src="https://images.unsplash.com/photo-1677553512940-f79af72efd1b?w=700&h=520&q=62&auto=format&fit=crop" alt="A bathroom with a claw-foot bath and tiled floor" loading="lazy" decoding="async"></button>
+      <!-- phones: every photo in a swipeable strip (tap one to open it full screen); the first is the same file as the big photo above -->
+      <div class="ph gallery__ph" data-ph>
+        <div class="ph__track" data-ph-track>
+          <button class="ph__slide" type="button" data-open-photo="0" aria-label="Open photo 1 of 6"><img src="https://images.unsplash.com/photo-1759355787174-044355f63c55?w=1400&h=1050&q=62&auto=format&fit=crop" alt="A whitewashed house with a terracotta roof and an arched porch" style="view-transition-name: photo-bay-crescent" decoding="async"></button>
+          <button class="ph__slide" type="button" data-open-photo="1" aria-label="Open photo 2 of 6" tabindex="-1"><img data-src="https://images.unsplash.com/photo-1631679706909-1844bbd07221?w=900&h=675&q=62&auto=format&fit=crop" alt="A cream living room with round mirrors" loading="lazy" decoding="async"></button>
+          <button class="ph__slide" type="button" data-open-photo="2" aria-label="Open photo 3 of 6" tabindex="-1"><img data-src="https://images.unsplash.com/photo-1725257928373-dc6d2ac7b145?w=900&h=675&q=62&auto=format&fit=crop" alt="A kitchen opening onto a dining table" loading="lazy" decoding="async"></button>
+          <button class="ph__slide" type="button" data-open-photo="3" aria-label="Open photo 4 of 6" tabindex="-1"><img data-src="https://images.unsplash.com/photo-1617325247661-675ab4b64ae2?w=900&h=675&q=62&auto=format&fit=crop" alt="A bedroom with a low timber bed frame" loading="lazy" decoding="async"></button>
+          <button class="ph__slide" type="button" data-open-photo="4" aria-label="Open photo 5 of 6" tabindex="-1"><img data-src="https://images.unsplash.com/photo-1677553512940-f79af72efd1b?w=900&h=675&q=62&auto=format&fit=crop" alt="A bathroom with a claw-foot bath and tiled floor" loading="lazy" decoding="async"></button>
+          <button class="ph__slide" type="button" data-open-photo="5" aria-label="Open photo 6 of 6" tabindex="-1"><img data-src="https://images.unsplash.com/photo-1782589326308-d38162051bdf?w=900&h=675&q=62&auto=format&fit=crop" alt="A gazebo in the back garden" loading="lazy" decoding="async"></button>
+        </div>
+        <button class="ph__nav ph__prev" type="button" aria-label="Previous photo" data-ph-prev><svg class="" aria-hidden="true"><use href="#back"/></svg></button>
+        <button class="ph__nav ph__next" type="button" aria-label="Next photo" data-ph-next><svg class="" aria-hidden="true"><use href="#arrow"/></svg></button>
+        <span class="ph__count" data-ph-count>1/6</span>
+      </div>
       <button class="btn btn--soft gallery__all" type="button" data-open-photo="0"><svg class="" aria-hidden="true"><use href="#grid"/></svg> View all 6 photos</button>
     </div>
 
@@ -410,6 +424,6 @@
     <button type="submit" aria-label="Send"><svg class="" aria-hidden="true"><use href="#send"/></svg></button>
   </form>
 </section>
-<script src="main.js?v=d11bd498" defer></script>
+<script src="main.js?v=2985d8a8" defer></script>
 </body>
 </html>
